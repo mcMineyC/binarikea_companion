@@ -4,7 +4,8 @@ import "package:flex_color_picker/flex_color_picker.dart";
 import 'package:http/http.dart' as http;
 import "dart:convert";
 
-Binarikea bk = Binarikea(address: "binarikea.local");
+Binarikea bk =
+    Binarikea(mainAddress: "binarikea.local", fallbackAddress: "192.168.4.1");
 
 void main() async {
   print("Starting app");
@@ -87,7 +88,19 @@ class _HomePageState extends State<HomePage> {
     } else if (!connected && tried) {
       return Scaffold(
         appBar: AppBar(title: const Text('Binarikea Companion')),
-        body: Center(child: Text('Could not connect to hardware')),
+        body: Center(
+            child: Column(children: <Widget>[
+          Text('Could not connect to hardware'),
+          FilledButton.tonal(
+            onPressed: () {
+              setState(() {
+                tried = false;
+                connected = false;
+              });
+            },
+            child: Text('Try Again'),
+          )
+        ])),
       );
     }
     return Scaffold(
@@ -287,6 +300,20 @@ class _HomePageState extends State<HomePage> {
                         ?.copyWith(color: Colors.white)),
               ),
             ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+              child: Row(
+                children: <Widget>[
+                  Text('Time', style: TextStyle(fontSize: 20)),
+                  Expanded(child: Container()),
+                  FilledButton.tonal(
+                      child: Text('Set Time'),
+                      onPressed: () async {
+                        await bk.setTime();
+                      }),
+                ],
+              ),
+            ),
           ],
         )));
   }
@@ -350,9 +377,25 @@ String printDuration(Duration duration) {
 }
 
 class Binarikea {
-  String address;
-  Binarikea({required this.address});
+  String address = "";
+  String mainAddress;
+  String fallbackAddress;
+  Binarikea({required this.mainAddress, required this.fallbackAddress});
   Future<bool> connect() async {
+    address = mainAddress;
+    try {
+      http.Response response = await http.get(Uri.parse('http://$address'));
+      if (response.statusCode == 200) {
+        print('Connected to $address');
+        return true;
+      } else {
+        print('Could not connect to $address');
+      }
+    } catch (e) {
+      print("Error connecting to $address");
+      print(e.toString());
+    }
+    address = fallbackAddress;
     try {
       http.Response response = await http.get(Uri.parse('http://$address'));
       if (response.statusCode == 200) {
@@ -376,6 +419,19 @@ class Binarikea {
       return true;
     } else {
       print('Could not stop timer');
+      return false;
+    }
+  }
+
+  Future<bool> setTime() async {
+    final DateTime now = DateTime.now();
+    http.Response response = await sendRequest(
+        "/time?hours=${now.hour}&minutes=${now.minute}&seconds=${now.second}");
+    if (response.statusCode == 200) {
+      print('set time');
+      return true;
+    } else {
+      print('Could not set time: ${response.body}');
       return false;
     }
   }
