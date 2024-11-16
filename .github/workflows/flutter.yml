@@ -34,7 +34,7 @@ jobs:
       # - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter build apk
       - run: flutter build linux
-      - run: sh -c "cd build/linux/x64/release/bundle && zip -r app-release_x64.zip . && cp app-release-linux_x64.zip ../../../../../"
+      - run: sh -c "cd build/linux/x64/release/bundle && zip -r app-release-linux_x64.zip . && cp app-release-linux_x64.zip ../../../../../"
       - run: cp build/app/outputs/apk/release/app-release.apk ./
       - uses: ncipollo/release-action@v1
         with:
